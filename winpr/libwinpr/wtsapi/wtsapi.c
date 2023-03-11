@@ -19,9 +19,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include <winpr/crt.h>
 #include <winpr/ini.h>
@@ -52,9 +50,13 @@ static const WtsApiFunctionTable* g_WtsApi = NULL;
 static HMODULE g_WtsApi32Module = NULL;
 static WtsApiFunctionTable WtsApi32_WtsApiFunctionTable = { 0 };
 
-#define WTSAPI32_LOAD_PROC(_name, _type)                                                   \
-	WtsApi32_WtsApiFunctionTable.p##_name = (##_type)GetProcAddress(g_WtsApi32Module, "WT" \
-	                                                                                  "S" #_name);
+#ifdef __MINGW32__
+#define WTSAPI32_LOAD_PROC(NAME, TYPE) \
+	WtsApi32_WtsApiFunctionTable.p##NAME = (TYPE)GetProcAddress(g_WtsApi32Module, "WTS" #NAME);
+#else
+#define WTSAPI32_LOAD_PROC(NAME, TYPE) \
+	WtsApi32_WtsApiFunctionTable.p##NAME = (##TYPE)GetProcAddress(g_WtsApi32Module, "WTS" #NAME);
+#endif
 
 static BOOL WtsApi32_InitializeWtsApi(void)
 {
@@ -679,7 +681,13 @@ BOOL WTSRegisterWtsApiFunctionTable(const WtsApiFunctionTable* table)
 	/* Use InitOnceExecuteOnce here as well - otherwise a table set with this
 	   function is overriden on the first use of a WTS* API call (due to
 	   wtsapiInitOnce not being set). */
-	InitOnceExecuteOnce(&wtsapiInitOnce, InitializeWtsApiStubs, (PVOID)table, NULL);
+	union
+	{
+		const void* cpv;
+		void* pv;
+	} cnv;
+	cnv.cpv = table;
+	InitOnceExecuteOnce(&wtsapiInitOnce, InitializeWtsApiStubs, cnv.pv, NULL);
 	if (!g_WtsApi)
 		return FALSE;
 	return TRUE;
@@ -704,7 +712,7 @@ static BOOL LoadAndInitialize(char* library)
 	return TRUE;
 }
 
-static void InitializeWtsApiStubs_Env()
+static void InitializeWtsApiStubs_Env(void)
 {
 	DWORD nSize;
 	char* env = NULL;
@@ -729,7 +737,7 @@ static void InitializeWtsApiStubs_Env()
 
 #define FREERDS_LIBRARY_NAME "libfreerds-fdsapi.so"
 
-static void InitializeWtsApiStubs_FreeRDS()
+static void InitializeWtsApiStubs_FreeRDS(void)
 {
 	wIniFile* ini;
 	const char* prefix;

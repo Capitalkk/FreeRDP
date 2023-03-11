@@ -26,10 +26,10 @@
 #include <freerdp/channels/wtsvc.h>
 #include <freerdp/channels/rdpei.h>
 
-typedef struct _rdpei_server_context RdpeiServerContext;
-typedef struct _rdpei_server_private RdpeiServerPrivate;
+typedef struct s_rdpei_server_context RdpeiServerContext;
+typedef struct s_rdpei_server_private RdpeiServerPrivate;
 
-struct _rdpei_server_context
+struct s_rdpei_server_context
 {
 	HANDLE vcm;
 
@@ -46,6 +46,11 @@ struct _rdpei_server_context
 	UINT (*onTouchReleased)(RdpeiServerContext* context, BYTE contactId);
 
 	void* user_data; /* user data, useful for callbacks */
+
+	/**
+	 * Callback, when the channel got its id assigned.
+	 */
+	BOOL (*onChannelIdAssigned)(RdpeiServerContext* context, UINT32 channelId);
 };
 
 #ifdef __cplusplus

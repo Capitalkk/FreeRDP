@@ -18,9 +18,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include <winpr/sysinfo.h>
 #include <winpr/platform.h>
@@ -63,7 +61,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-#ifdef HAVE_UNISTD_H
+#ifdef WINPR_HAVE_UNISTD_H
 #include <unistd.h>
 #endif
 
@@ -404,7 +402,11 @@ BOOL GetComputerNameW(LPWSTR lpBuffer, LPDWORD lpnSize)
 	rc = GetComputerNameA(buffer, lpnSize);
 
 	if (rc && (*lpnSize > 0))
-		ConvertToUnicode(CP_UTF8, 0, buffer, (int)*lpnSize, &lpBuffer, (int)*lpnSize);
+	{
+		const SSIZE_T res = ConvertUtf8NToWChar(buffer, *lpnSize, lpBuffer, *lpnSize);
+		rc = res > 0;
+	}
+
 	free(buffer);
 
 	return rc;
@@ -522,7 +524,10 @@ BOOL GetComputerNameExW(COMPUTER_NAME_FORMAT NameType, LPWSTR lpBuffer, LPDWORD 
 	rc = GetComputerNameExA(NameType, lpABuffer, lpnSize);
 
 	if (rc && (*lpnSize > 0))
-		ConvertToUnicode(CP_UTF8, 0, lpABuffer, *lpnSize, &lpBuffer, *lpnSize);
+	{
+		const SSIZE_T res = ConvertUtf8NToWChar(lpABuffer, *lpnSize, lpBuffer, *lpnSize);
+		rc = res > 0;
+	}
 
 	free(lpABuffer);
 	return rc;

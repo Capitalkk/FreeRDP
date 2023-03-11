@@ -16,9 +16,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <winpr/assert.h>
 
@@ -26,6 +24,7 @@
 
 #include "shadow_encoder.h"
 
+#include <freerdp/log.h>
 #define TAG CLIENT_TAG("shadow")
 
 UINT32 shadow_encoder_preferred_fps(rdpShadowEncoder* encoder)
@@ -373,18 +372,18 @@ static int shadow_encoder_uninit(rdpShadowEncoder* encoder)
 		encoder->bs = NULL;
 	}
 
-		shadow_encoder_uninit_rfx(encoder);
+	shadow_encoder_uninit_rfx(encoder);
 
-		shadow_encoder_uninit_nsc(encoder);
+	shadow_encoder_uninit_nsc(encoder);
 
-		shadow_encoder_uninit_planar(encoder);
+	shadow_encoder_uninit_planar(encoder);
 
-		shadow_encoder_uninit_interleaved(encoder);
-		shadow_encoder_uninit_h264(encoder);
+	shadow_encoder_uninit_interleaved(encoder);
+	shadow_encoder_uninit_h264(encoder);
 
-	    shadow_encoder_uninit_progressive(encoder);
+	shadow_encoder_uninit_progressive(encoder);
 
-	    return 1;
+	return 1;
 }
 
 int shadow_encoder_reset(rdpShadowEncoder* encoder)

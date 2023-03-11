@@ -26,11 +26,13 @@
 #include <freerdp/channels/rdpgfx.h>
 #include <freerdp/utils/profiler.h>
 
+#include <freerdp/cache/persistent.h>
+
 /**
  * Client Interface
  */
-
-typedef struct _rdpgfx_client_context RdpgfxClientContext;
+typedef struct gdi_gfx_surface gdiGfxSurface;
+typedef struct s_rdpgfx_client_context RdpgfxClientContext;
 
 typedef UINT (*pcRdpgfxResetGraphics)(RdpgfxClientContext* context,
                                       const RDPGFX_RESET_GRAPHICS_PDU* resetGraphics);
@@ -60,6 +62,10 @@ typedef UINT (*pcRdpgfxCacheImportReply)(RdpgfxClientContext* context,
                                          const RDPGFX_CACHE_IMPORT_REPLY_PDU* cacheImportReply);
 typedef UINT (*pcRdpgfxEvictCacheEntry)(RdpgfxClientContext* context,
                                         const RDPGFX_EVICT_CACHE_ENTRY_PDU* evictCacheEntry);
+typedef UINT (*pcRdpgfxImportCacheEntry)(RdpgfxClientContext* context, UINT16 cacheSlot,
+                                         PERSISTENT_CACHE_ENTRY* importCacheEntry);
+typedef UINT (*pcRdpgfxExportCacheEntry)(RdpgfxClientContext* context, UINT16 cacheSlot,
+                                         PERSISTENT_CACHE_ENTRY* importCacheEntry);
 typedef UINT (*pcRdpgfxMapSurfaceToOutput)(RdpgfxClientContext* context,
                                            const RDPGFX_MAP_SURFACE_TO_OUTPUT_PDU* surfaceToOutput);
 typedef UINT (*pcRdpgfxMapSurfaceToScaledOutput)(
@@ -77,6 +83,9 @@ typedef UINT (*pcRdpgfxSetCacheSlotData)(RdpgfxClientContext* context, UINT16 ca
 typedef void* (*pcRdpgfxGetCacheSlotData)(RdpgfxClientContext* context, UINT16 cacheSlot);
 
 typedef UINT (*pcRdpgfxUpdateSurfaces)(RdpgfxClientContext* context);
+
+typedef UINT (*pcRdpgfxUpdateWindowFromSurface)(RdpgfxClientContext* context,
+                                                gdiGfxSurface* surface);
 
 typedef UINT (*pcRdpgfxUpdateSurfaceArea)(RdpgfxClientContext* context, UINT16 surfaceId,
                                           UINT32 nrRects, const RECTANGLE_16* rects);
@@ -97,7 +106,7 @@ typedef UINT (*pcRdpgfxMapWindowForSurface)(RdpgfxClientContext* context, UINT16
                                             UINT64 windowID);
 typedef UINT (*pcRdpgfxUnmapWindowForSurface)(RdpgfxClientContext* context, UINT64 windowID);
 
-struct _rdpgfx_client_context
+struct s_rdpgfx_client_context
 {
 	void* handle;
 	void* custom;
@@ -116,6 +125,8 @@ struct _rdpgfx_client_context
 	pcRdpgfxCacheToSurface CacheToSurface;
 	pcRdpgfxCacheImportOffer CacheImportOffer;
 	pcRdpgfxCacheImportReply CacheImportReply;
+	pcRdpgfxImportCacheEntry ImportCacheEntry;
+	pcRdpgfxExportCacheEntry ExportCacheEntry;
 	pcRdpgfxEvictCacheEntry EvictCacheEntry;
 	pcRdpgfxMapSurfaceToOutput MapSurfaceToOutput;
 	pcRdpgfxMapSurfaceToScaledOutput MapSurfaceToScaledOutput;
@@ -139,8 +150,9 @@ struct _rdpgfx_client_context
 	/* No locking required */
 	pcRdpgfxUpdateSurfaces UpdateSurfaces;
 	pcRdpgfxUpdateSurfaceArea UpdateSurfaceArea;
+	pcRdpgfxUpdateWindowFromSurface UpdateWindowFromSurface;
 
-	/* These callbacks allow crating/destroying a window directly
+	/* These callbacks allow creating/destroying a window directly
 	 * mapped to a surface.
 	 * NOTE: The surface is already locked.
 	 */
@@ -157,7 +169,7 @@ extern "C"
 {
 #endif
 
-	FREERDP_API RdpgfxClientContext* rdpgfx_client_context_new(rdpSettings* settings);
+	FREERDP_API RdpgfxClientContext* rdpgfx_client_context_new(rdpContext* context);
 	FREERDP_API void rdpgfx_client_context_free(RdpgfxClientContext* context);
 
 #ifdef __cplusplus

@@ -261,6 +261,7 @@ struct uwac_key_event
 	uint32_t raw_key;
 	uint32_t sym;
 	bool pressed;
+	bool repeated;
 };
 typedef struct uwac_key_event UwacKeyEvent;
 
@@ -294,7 +295,8 @@ struct uwac_output_geometry_event
 };
 typedef struct uwac_output_geometry_event UwacOutputGeometryEvent;
 
-union uwac_event {
+union uwac_event
+{
 	int type;
 	UwacOutputNewEvent output_new;
 	UwacOutputGeometryEvent output_geometry;
@@ -569,6 +571,14 @@ extern "C"
 	 * @param name title
 	 */
 	UWAC_API void UwacWindowSetTitle(UwacWindow* window, const char* name);
+
+	/**
+	 *	Sets the app id of the UwacWindow
+	 *
+	 * @param window the UwacWindow
+	 * @param app_id app id
+	 */
+	UWAC_API void UwacWindowSetAppId(UwacWindow* window, const char* app_id);
 
 	/** Dispatch the display
 	 *

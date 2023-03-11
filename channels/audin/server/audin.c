@@ -19,9 +19,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +47,7 @@
 #define MSG_SNDIN_DATA 0x06
 #define MSG_SNDIN_FORMATCHANGE 0x07
 
-typedef struct _audin_server
+typedef struct
 {
 	audin_server_context context;
 
@@ -172,9 +170,6 @@ static UINT audin_server_send_formats(audin_server* audin, wStream* s)
 	for (i = 0; i < audin->context.num_server_formats; i++)
 	{
 		AUDIO_FORMAT format = audin->context.server_formats[i];
-		// TODO: Eliminate this
-		format.nAvgBytesPerSec =
-		    format.nSamplesPerSec * format.nChannels * format.wBitsPerSample / 8;
 
 		if (!audio_format_write(s, &format))
 		{
@@ -214,7 +209,7 @@ static UINT audin_server_recv_formats(audin_server* audin, wStream* s, UINT32 le
 
 	if (audin->context.num_client_formats <= 0)
 	{
-		WLog_ERR(TAG, "num_client_formats expected > 0 but got %d",
+		WLog_ERR(TAG, "num_client_formats expected > 0 but got %" PRIuz,
 		         audin->context.num_client_formats);
 		return ERROR_INVALID_DATA;
 	}
@@ -259,7 +254,7 @@ static UINT audin_server_send_open(audin_server* audin, wStream* s)
 	WINPR_ASSERT(audin);
 	if (audin->context.selected_client_format < 0)
 	{
-		WLog_ERR(TAG, "audin->context.selected_client_format = %d",
+		WLog_ERR(TAG, "audin->context.selected_client_format = %" PRIdz,
 		         audin->context.selected_client_format);
 		return ERROR_INVALID_DATA;
 	}
@@ -267,7 +262,7 @@ static UINT audin_server_send_open(audin_server* audin, wStream* s)
 	audin->opened = TRUE;
 	Stream_SetPosition(s, 0);
 	Stream_Write_UINT8(s, MSG_SNDIN_OPEN);
-	Stream_Write_UINT32(s, audin->context.frames_per_packet);      /* FramesPerPacket (4 bytes) */
+	Stream_Write_UINT32(s, audin->context.frames_per_packet); /* FramesPerPacket (4 bytes) */
 	WINPR_ASSERT(audin->context.selected_client_format >= 0);
 	WINPR_ASSERT(audin->context.selected_client_format <= UINT32_MAX);
 	Stream_Write_UINT32(
@@ -335,7 +330,7 @@ static UINT audin_server_recv_data(audin_server* audin, wStream* s, UINT32 lengt
 	WINPR_ASSERT(audin);
 	if (audin->context.selected_client_format < 0)
 	{
-		WLog_ERR(TAG, "audin->context.selected_client_format = %d",
+		WLog_ERR(TAG, "audin->context.selected_client_format = %" PRIdz,
 		         audin->context.selected_client_format);
 		return ERROR_INVALID_DATA;
 	}
@@ -583,6 +578,8 @@ static BOOL audin_server_open(audin_server_context* context)
 		PULONG pSessionId = NULL;
 		DWORD BytesReturned = 0;
 		audin->SessionId = WTS_CURRENT_SESSION;
+		UINT32 channelId;
+		BOOL status = TRUE;
 
 		if (WTSQuerySessionInformationA(context->vcm, WTS_CURRENT_SESSION, WTSSessionId,
 		                                (LPSTR*)&pSessionId, &BytesReturned))
@@ -598,6 +595,15 @@ static BOOL audin_server_open(audin_server_context* context)
 		{
 			WLog_ERR(TAG, "WTSVirtualChannelOpenEx failed!");
 			return FALSE;
+		}
+
+		channelId = WTSChannelGetIdByHandle(audin->audin_channel);
+
+		IFCALLRET(context->ChannelIdAssigned, status, context, channelId);
+		if (!status)
+		{
+			WLog_ERR(TAG, "context->ChannelIdAssigned failed!");
+			return ERROR_INTERNAL_ERROR;
 		}
 
 		if (!(audin->stopEvent = CreateEvent(NULL, TRUE, FALSE, NULL)))

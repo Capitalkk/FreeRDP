@@ -29,7 +29,7 @@ static WCHAR testDelimiter[] = { '\r', '\n', '\0' };
 
 int TestString(int argc, char* argv[])
 {
-	WCHAR* p;
+	const WCHAR* p;
 	size_t pos;
 	size_t length;
 	WCHAR* context;
@@ -82,7 +82,8 @@ int TestString(int argc, char* argv[])
 
 	if (p != NULL)
 	{
-		printf("_wcschr error: return value mismatch: Actual: %p, Expected: NULL\n", (void*)p);
+		printf("_wcschr error: return value mismatch: Actual: %p, Expected: NULL\n",
+		       (const void*)p);
 		return -1;
 	}
 

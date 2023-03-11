@@ -17,9 +17,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <errno.h>
 
@@ -29,11 +27,12 @@
 #include <winpr/string.h>
 
 #include <freerdp/log.h>
+#include <freerdp/crypto/crypto.h>
 
 /* websocket need sha1 for Sec-Websocket-Accept */
 #include <winpr/crypto.h>
 
-#ifdef HAVE_VALGRIND_MEMCHECK_H
+#ifdef FREERDP_HAVE_VALGRIND_MEMCHECK_H
 #include <valgrind/memcheck.h>
 #endif
 
@@ -45,7 +44,7 @@
 
 #define WEBSOCKET_MAGIC_GUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-struct _http_context
+struct s_http_context
 {
 	char* Method;
 	char* URI;
@@ -58,10 +57,10 @@ struct _http_context
 	char* RdgConnectionId;
 	char* RdgAuthScheme;
 	BOOL websocketUpgrade;
-	char SecWebsocketKey[16];
+	char* SecWebsocketKey;
 };
 
-struct _http_request
+struct s_http_request
 {
 	char* Method;
 	char* URI;
@@ -73,7 +72,7 @@ struct _http_request
 	TRANSFER_ENCODING TransferEncoding;
 };
 
-struct _http_response
+struct s_http_response
 {
 	size_t count;
 	char** lines;
@@ -275,14 +274,15 @@ BOOL http_context_enable_websocket_upgrade(HttpContext* context, BOOL enable)
 
 	if (enable)
 	{
-		int i;
-		winpr_RAND((BYTE*)context->SecWebsocketKey, 15);
-		for (i = 0; i < 16; i++)
-			context->SecWebsocketKey[i] = (context->SecWebsocketKey[i] | 0x40) & 0x5f;
-		context->SecWebsocketKey[15] = '\0';
+		BYTE key[16];
+		if (winpr_RAND(key, sizeof(key)) != 0)
+			return FALSE;
+
+		context->SecWebsocketKey = crypto_base64_encode(key, sizeof(key));
+		if (!context->SecWebsocketKey)
+			return FALSE;
 	}
-	else
-		context->SecWebsocketKey[0] = '\0';
+
 	context->websocketUpgrade = enable;
 	return TRUE;
 }
@@ -306,6 +306,7 @@ void http_context_free(HttpContext* context)
 {
 	if (context)
 	{
+		free(context->SecWebsocketKey);
 		free(context->UserAgent);
 		free(context->Host);
 		free(context->URI);
@@ -759,7 +760,7 @@ static BOOL http_response_parse_header(HttpResponse* response)
 fail:
 
 	if (!rc)
-		WLog_ERR(TAG, "%s: parsing failed", __FUNCTION__);
+		WLog_ERR(TAG, "parsing failed");
 
 	return rc;
 }
@@ -822,14 +823,10 @@ static int print_bio_error(const char* str, size_t len, void* bp)
 
 HttpResponse* http_response_recv(rdpTls* tls, BOOL readContentLength)
 {
-	size_t size;
 	size_t position;
 	size_t bodyLength = 0;
-	size_t payloadOffset;
-	HttpResponse* response;
-	size = 2048;
-	payloadOffset = 0;
-	response = http_response_new();
+	size_t payloadOffset = 0;
+	HttpResponse* response = http_response_new();
 
 	if (!response)
 		return NULL;
@@ -841,13 +838,14 @@ HttpResponse* http_response_recv(rdpTls* tls, BOOL readContentLength)
 		size_t s;
 		char* end;
 		/* Read until we encounter \r\n\r\n */
+		ERR_clear_error();
 		int status = BIO_read(tls->bio, Stream_Pointer(response->data), 1);
 
 		if (status <= 0)
 		{
 			if (!BIO_should_retry(tls->bio))
 			{
-				WLog_ERR(TAG, "%s: Retries exceeded", __FUNCTION__);
+				WLog_ERR(TAG, "Retries exceeded");
 				ERR_print_errors_cb(print_bio_error, NULL);
 				goto out_error;
 			}
@@ -856,7 +854,7 @@ HttpResponse* http_response_recv(rdpTls* tls, BOOL readContentLength)
 			continue;
 		}
 
-#ifdef HAVE_VALGRIND_MEMCHECK_H
+#ifdef FREERDP_HAVE_VALGRIND_MEMCHECK_H
 		VALGRIND_MAKE_MEM_DEFINED(Stream_Pointer(response->data), status);
 #endif
 		Stream_Seek(response->data, (size_t)status);
@@ -957,6 +955,7 @@ HttpResponse* http_response_recv(rdpTls* tls, BOOL readContentLength)
 			if (!Stream_EnsureRemainingCapacity(response->data, bodyLength - response->BodyLength))
 				goto out_error;
 
+			ERR_clear_error();
 			status = BIO_read(tls->bio, Stream_Pointer(response->data),
 			                  bodyLength - response->BodyLength);
 
@@ -964,7 +963,7 @@ HttpResponse* http_response_recv(rdpTls* tls, BOOL readContentLength)
 			{
 				if (!BIO_should_retry(tls->bio))
 				{
-					WLog_ERR(TAG, "%s: Retries exceeded", __FUNCTION__);
+					WLog_ERR(TAG, "Retries exceeded");
 					ERR_print_errors_cb(print_bio_error, NULL);
 					goto out_error;
 				}
@@ -989,7 +988,7 @@ HttpResponse* http_response_recv(rdpTls* tls, BOOL readContentLength)
 
 		if (bodyLength != response->BodyLength)
 		{
-			WLog_WARN(TAG, "%s: %s unexpected body length: actual: %d, expected: %d", __FUNCTION__,
+			WLog_WARN(TAG, "%s unexpected body length: actual: %" PRIuz ", expected: %" PRIuz,
 			          response->ContentType, response->BodyLength, bodyLength);
 
 			if (bodyLength > 0)
@@ -1129,8 +1128,7 @@ BOOL http_response_is_websocket(HttpContext* http, HttpResponse* response)
 	if (!winpr_Digest_Init(sha1, WINPR_MD_SHA1))
 		goto out;
 
-	if (!winpr_Digest_Update(sha1, (const BYTE*)http->SecWebsocketKey,
-	                         strlen(http->SecWebsocketKey)))
+	if (!winpr_Digest_Update(sha1, (BYTE*)http->SecWebsocketKey, strlen(http->SecWebsocketKey)))
 		goto out;
 	if (!winpr_Digest_Update(sha1, (const BYTE*)WEBSOCKET_MAGIC_GUID, strlen(WEBSOCKET_MAGIC_GUID)))
 		goto out;

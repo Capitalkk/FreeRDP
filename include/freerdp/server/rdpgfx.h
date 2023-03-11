@@ -23,11 +23,13 @@
 #include <freerdp/channels/rdpgfx.h>
 #include <freerdp/freerdp.h>
 
-typedef struct _rdpgfx_server_context RdpgfxServerContext;
-typedef struct _rdpgfx_server_private RdpgfxServerPrivate;
+typedef struct s_rdpgfx_server_context RdpgfxServerContext;
+typedef struct s_rdpgfx_server_private RdpgfxServerPrivate;
 
 typedef BOOL (*psRdpgfxServerOpen)(RdpgfxServerContext* context);
 typedef BOOL (*psRdpgfxServerClose)(RdpgfxServerContext* context);
+
+typedef BOOL (*psRdpgfxServerChannelIdAssigned)(RdpgfxServerContext* context, UINT32 channelId);
 
 typedef UINT (*psRdpgfxResetGraphics)(RdpgfxServerContext* context,
                                       const RDPGFX_RESET_GRAPHICS_PDU* resetGraphics);
@@ -78,7 +80,7 @@ typedef UINT (*psRdpgfxFrameAcknowledge)(RdpgfxServerContext* context,
 typedef UINT (*psRdpgfxQoeFrameAcknowledge)(
     RdpgfxServerContext* context, const RDPGFX_QOE_FRAME_ACKNOWLEDGE_PDU* qoeFrameAcknowledge);
 
-struct _rdpgfx_server_context
+struct s_rdpgfx_server_context
 {
 	HANDLE vcm;
 	void* custom;
@@ -112,6 +114,11 @@ struct _rdpgfx_server_context
 
 	RdpgfxServerPrivate* priv;
 	rdpContext* rdpcontext;
+
+	/**
+	 * Callback, when the channel got its id assigned.
+	 */
+	psRdpgfxServerChannelIdAssigned ChannelIdAssigned;
 };
 
 #ifdef __cplusplus

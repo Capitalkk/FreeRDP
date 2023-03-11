@@ -32,8 +32,10 @@ typedef struct rdp_input rdpInput;
 /* keyboard Flags */
 #define KBD_FLAGS_EXTENDED 0x0100
 #define KBD_FLAGS_EXTENDED1 0x0200
-#define KBD_FLAGS_DOWN 0x4000
-#define KBD_FLAGS_RELEASE 0x8000
+#define KBD_FLAGS_DOWN \
+	0x4000 /**< Presence of this flag indicates the key was already down previously */
+#define KBD_FLAGS_RELEASE \
+	0x8000 /**< Presence of this flag inidcates a key was released. Absence a key press */
 
 /* Pointer Flags */
 #define PTR_FLAGS_HWHEEL 0x0400
@@ -65,7 +67,7 @@ typedef struct rdp_input_proxy rdpInputProxy;
 /* Input Interface */
 
 typedef BOOL (*pSynchronizeEvent)(rdpInput* input, UINT32 flags);
-typedef BOOL (*pKeyboardEvent)(rdpInput* input, UINT16 flags, UINT16 code);
+typedef BOOL (*pKeyboardEvent)(rdpInput* input, UINT16 flags, UINT8 code);
 typedef BOOL (*pUnicodeKeyboardEvent)(rdpInput* input, UINT16 flags, UINT16 code);
 typedef BOOL (*pMouseEvent)(rdpInput* input, UINT16 flags, UINT16 x, UINT16 y);
 typedef BOOL (*pExtendedMouseEvent)(rdpInput* input, UINT16 flags, UINT16 x, UINT16 y);
@@ -87,12 +89,6 @@ struct rdp_input
 	pKeyboardPauseEvent KeyboardPauseEvent;     /* 22 */
 
 	UINT32 paddingB[32 - 23]; /* 23 */
-
-	/* Internal */
-
-	BOOL asynchronous;
-	rdpInputProxy* proxy;
-	wMessageQueue* queue;
 };
 
 #ifdef __cplusplus
@@ -101,8 +97,8 @@ extern "C"
 #endif
 
 	FREERDP_API BOOL freerdp_input_send_synchronize_event(rdpInput* input, UINT32 flags);
-	FREERDP_API BOOL freerdp_input_send_keyboard_event(rdpInput* input, UINT16 flags, UINT16 code);
-	FREERDP_API BOOL freerdp_input_send_keyboard_event_ex(rdpInput* input, BOOL down,
+	FREERDP_API BOOL freerdp_input_send_keyboard_event(rdpInput* input, UINT16 flags, UINT8 code);
+	FREERDP_API BOOL freerdp_input_send_keyboard_event_ex(rdpInput* input, BOOL down, BOOL repeat,
 	                                                      UINT32 rdp_scancode);
 	FREERDP_API BOOL freerdp_input_send_keyboard_pause_event(rdpInput* input);
 	FREERDP_API BOOL freerdp_input_send_unicode_keyboard_event(rdpInput* input, UINT16 flags,

@@ -19,9 +19,7 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <freerdp/config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +33,7 @@
 #include "nsc_types.h"
 #include "nsc_encode.h"
 
-struct _NSC_MESSAGE
+typedef struct
 {
 	UINT32 x;
 	UINT32 y;
@@ -54,8 +52,7 @@ struct _NSC_MESSAGE
 	UINT32 AlphaPlaneByteCount;
 	UINT8 ColorLossLevel;
 	UINT8 ChromaSubsamplingLevel;
-};
-typedef struct _NSC_MESSAGE NSC_MESSAGE;
+} NSC_MESSAGE;
 
 static BOOL nsc_write_message(NSC_CONTEXT* context, wStream* s, const NSC_MESSAGE* message);
 
@@ -289,7 +286,7 @@ static BOOL nsc_encode_subsampling(NSC_CONTEXT* context)
 	if (tempWidth > context->priv->PlaneBuffersLength / tempHeight)
 		return FALSE;
 
-	for (y = 0; y<tempHeight>> 1; y++)
+	for (y = 0; y < tempHeight >> 1; y++)
 	{
 		UINT32 x;
 		BYTE* co_dst = context->priv->PlaneBuffers[1] + y * (tempWidth >> 1);
@@ -299,7 +296,7 @@ static BOOL nsc_encode_subsampling(NSC_CONTEXT* context)
 		const INT8* cg_src0 = (INT8*)context->priv->PlaneBuffers[2] + (y << 1) * tempWidth;
 		const INT8* cg_src1 = cg_src0 + tempWidth;
 
-		for (x = 0; x<tempWidth>> 1; x++)
+		for (x = 0; x < tempWidth >> 1; x++)
 		{
 			*co_dst++ = (BYTE)(((INT16)*co_src0 + (INT16) * (co_src0 + 1) + (INT16)*co_src1 +
 			                    (INT16) * (co_src1 + 1)) >>
@@ -526,12 +523,13 @@ BOOL nsc_decompose_message(NSC_CONTEXT* context, wStream* s, BYTE* bmpdata, UINT
                            UINT32 flip)
 {
 	size_t size = Stream_GetRemainingLength(s);
+
 	if (size > UINT32_MAX)
 		return FALSE;
 
-	if (!nsc_process_message(context, (UINT16)GetBitsPerPixel(context->format), width, height,
-	                         Stream_Pointer(s), (UINT32)size, bmpdata, format, rowstride, x, y,
-	                         width, height, flip))
+	if (!nsc_process_message(context, (UINT16)FreeRDPGetBitsPerPixel(context->format), width,
+	                         height, Stream_Pointer(s), (UINT32)size, bmpdata, format, rowstride, x,
+	                         y, width, height, flip))
 		return FALSE;
 	Stream_Seek(s, size);
 	return TRUE;

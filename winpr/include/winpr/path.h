@@ -25,9 +25,9 @@
 #include <winpr/error.h>
 #include <winpr/wtypes.h>
 
-//#define HAVE_PATHCCH_H	1
+//#define WINPR_HAVE_PATHCCH_H	1
 
-#ifdef HAVE_PATHCCH_H
+#ifdef WINPR_HAVE_PATHCCH_H
 
 #include <Pathcch.h>
 
@@ -336,6 +336,7 @@ extern "C"
 #endif
 
 	WINPR_API BOOL winpr_MoveFile(LPCSTR lpExistingFileName, LPCSTR lpNewFileName);
+	WINPR_API BOOL winpr_MoveFileEx(LPCSTR lpExistingFileName, LPCSTR lpNewFileName, DWORD dwFlags);
 	WINPR_API BOOL winpr_DeleteFile(const char* lpFileName);
 	WINPR_API BOOL winpr_RemoveDirectory(LPCSTR lpPathName);
 	WINPR_API BOOL winpr_PathFileExists(const char* pszPath);

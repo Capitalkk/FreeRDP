@@ -65,7 +65,8 @@ extern "C"
 		UINT32 flags;             /* 23 */
 		UINT32 length;            /* 24 */
 		BYTE* data;               /* 25 */
-		UINT32 paddingB[32 - 26]; /* 26 */
+		UINT64 key64;             /* 26 */
+		UINT32 paddingB[32 - 27]; /* 27 */
 
 		BOOL compressed;          /* 32 */
 		BOOL ephemeral;           /* 33 */
@@ -81,7 +82,7 @@ extern "C"
 
 	typedef BOOL (*pPointer_New)(rdpContext* context, rdpPointer* pointer);
 	typedef void (*pPointer_Free)(rdpContext* context, rdpPointer* pointer);
-	typedef BOOL (*pPointer_Set)(rdpContext* context, const rdpPointer* pointer);
+	typedef BOOL (*pPointer_Set)(rdpContext* context, rdpPointer* pointer);
 	typedef BOOL (*pPointer_SetNull)(rdpContext* context);
 	typedef BOOL (*pPointer_SetDefault)(rdpContext* context);
 	typedef BOOL (*pPointer_SetPosition)(rdpContext* context, UINT32 x, UINT32 y);

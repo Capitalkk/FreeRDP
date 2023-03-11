@@ -20,11 +20,20 @@ set(MODULE_PREFIX "FREERDP_UTILS")
 
 set(${MODULE_PREFIX}_SRCS
 	passphrase.c
+	cliprdr_utils.c
+	rdpdr_utils.c
 	pcap.c
 	profiler.c
 	ringbuffer.c
 	signal.c
-	stopwatch.c)
+    string.c
+    gfx.c
+    drdynvc.c
+	smartcard_operations.c
+	smartcard_pack.c
+	smartcard_call.c
+	stopwatch.c
+)
 
 freerdp_module_add(${${MODULE_PREFIX}_SRCS})
 

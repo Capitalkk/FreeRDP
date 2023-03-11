@@ -31,6 +31,7 @@
 #include <openssl/crypto.h>
 #include <openssl/conf.h>
 #include <openssl/pem.h>
+#include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <openssl/pkcs12.h>
 #include <openssl/x509v3.h>
@@ -38,7 +39,7 @@
 
 #include <winpr/tools/makecert.h>
 
-struct _MAKECERT_CONTEXT
+struct S_MAKECERT_CONTEXT
 {
 	int argc;
 	char** argv;
@@ -100,6 +101,7 @@ static char* makecert_read_str(BIO* bio, size_t* pOffset)
 
 		length = new_len;
 		x509_str = new_str;
+		ERR_clear_error();
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
 		status = BIO_read_ex(bio, &x509_str[offset], length - offset, &readBytes);
 #else
@@ -417,7 +419,7 @@ static int makecert_context_parse_arguments(MAKECERT_CONTEXT* context,
 	return 1;
 }
 
-int makecert_context_set_output_file_name(MAKECERT_CONTEXT* context, char* name)
+int makecert_context_set_output_file_name(MAKECERT_CONTEXT* context, const char* name)
 {
 	if (!context)
 		return -1;
@@ -434,7 +436,7 @@ int makecert_context_set_output_file_name(MAKECERT_CONTEXT* context, char* name)
 	return 1;
 }
 
-int makecert_context_output_certificate_file(MAKECERT_CONTEXT* context, char* path)
+int makecert_context_output_certificate_file(MAKECERT_CONTEXT* context, const char* path)
 {
 #ifdef WITH_OPENSSL
 	FILE* fp = NULL;
@@ -603,7 +605,7 @@ out_fail:
 #endif
 }
 
-int makecert_context_output_private_key_file(MAKECERT_CONTEXT* context, char* path)
+int makecert_context_output_private_key_file(MAKECERT_CONTEXT* context, const char* path)
 {
 #ifdef WITH_OPENSSL
 	FILE* fp = NULL;

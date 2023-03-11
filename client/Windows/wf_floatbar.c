@@ -20,18 +20,16 @@
 #include <winpr/crt.h>
 #include <winpr/windows.h>
 
-#include "resource.h"
-
 #include "wf_client.h"
 #include "wf_floatbar.h"
+
+#include "resource/resource.h"
 #include "wf_gdi.h"
 #ifdef _MSC_VER
 #pragma comment(lib, "Msimg32.lib")
 #endif
 
 #define TAG CLIENT_TAG("windows.floatbar")
-
-typedef struct _Button Button;
 
 /* TIMERs */
 #define TIMER_HIDE 1
@@ -60,7 +58,7 @@ typedef struct _Button Button;
 #define MINIMIZE_X (RESTORE_X - (BUTTON_WIDTH + BUTTON_SPACING))
 #define TEXT_X (BACKGROUND_H + ((BUTTON_WIDTH + BUTTON_SPACING) * 3) + 5)
 
-struct _Button
+typedef struct
 {
 	wfFloatBar* floatbar;
 	int type;
@@ -74,9 +72,9 @@ struct _Button
 	HBITMAP locked_bmp_act;
 	HBITMAP unlocked_bmp;
 	HBITMAP unlocked_bmp_act;
-};
+} Button;
 
-struct _FloatBar
+struct s_FloatBar
 {
 	HINSTANCE root_window;
 	DWORD flags;
@@ -701,7 +699,7 @@ wfFloatBar* wf_floatbar_new(wfContext* wfc, HINSTANCE window, DWORD flags)
 	if (!update_locked_state(floatbar))
 		goto fail;
 
-	if (!wf_floatbar_toggle_fullscreen(floatbar, wfc->context.settings->Fullscreen))
+	if (!wf_floatbar_toggle_fullscreen(floatbar, wfc->common.context.settings->Fullscreen))
 		goto fail;
 
 	return floatbar;

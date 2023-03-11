@@ -16,22 +16,20 @@
  * limitations under the License.
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+#include <winpr/config.h>
 
 #include <winpr/crt.h>
 
 #include <winpr/crypto.h>
+
+#include "../log.h"
+#define TAG WINPR_TAG("crypto.cipher")
 
 #ifdef WITH_OPENSSL
 #include <openssl/aes.h>
 #include <openssl/rc4.h>
 #include <openssl/des.h>
 #include <openssl/evp.h>
-#if defined(OPENSSL_VERSION_MAJOR) && (OPENSSL_VERSION_MAJOR >= 3)
-#include <openssl/provider.h>
-#endif
 #endif
 
 #ifdef WITH_MBEDTLS
@@ -61,11 +59,6 @@ static WINPR_RC4_CTX* winpr_RC4_New_Internal(const BYTE* key, size_t keylen, BOO
 	if (keylen > INT_MAX)
 		return NULL;
 
-#if defined(OPENSSL_VERSION_MAJOR) && (OPENSSL_VERSION_MAJOR >= 3)
-	if (OSSL_PROVIDER_load(NULL, "legacy") == NULL)
-		return NULL;
-#endif
-
 	if (!(ctx = (WINPR_RC4_CTX*)EVP_CIPHER_CTX_new()))
 		return NULL;
 
@@ -77,7 +70,7 @@ static WINPR_RC4_CTX* winpr_RC4_New_Internal(const BYTE* key, size_t keylen, BOO
 	EVP_CIPHER_CTX_init((EVP_CIPHER_CTX*)ctx);
 	if (EVP_EncryptInit_ex((EVP_CIPHER_CTX*)ctx, evp, NULL, NULL, NULL) != 1)
 	{
-		EVP_CIPHER_CTX_free ((EVP_CIPHER_CTX*)ctx);
+		EVP_CIPHER_CTX_free((EVP_CIPHER_CTX*)ctx);
 		return NULL;
 	}
 
@@ -91,7 +84,7 @@ static WINPR_RC4_CTX* winpr_RC4_New_Internal(const BYTE* key, size_t keylen, BOO
 	EVP_CIPHER_CTX_set_key_length((EVP_CIPHER_CTX*)ctx, (int)keylen);
 	if (EVP_EncryptInit_ex((EVP_CIPHER_CTX*)ctx, NULL, NULL, key, NULL) != 1)
 	{
-		EVP_CIPHER_CTX_free ((EVP_CIPHER_CTX*)ctx);
+		EVP_CIPHER_CTX_free((EVP_CIPHER_CTX*)ctx);
 		return NULL;
 	}
 #elif defined(WITH_MBEDTLS) && defined(MBEDTLS_ARC4_C)
@@ -643,7 +636,10 @@ BOOL winpr_Cipher_Update(WINPR_CIPHER_CTX* ctx, const BYTE* input, size_t ilen, 
 	int outl = (int)*olen;
 
 	if (ilen > INT_MAX)
+	{
+		WLog_ERR(TAG, "input length %" PRIuz " > %d, abort", ilen, INT_MAX);
 		return FALSE;
+	}
 
 	if (EVP_CipherUpdate((EVP_CIPHER_CTX*)ctx, output, &outl, input, (int)ilen) == 1)
 	{
@@ -657,6 +653,8 @@ BOOL winpr_Cipher_Update(WINPR_CIPHER_CTX* ctx, const BYTE* input, size_t ilen, 
 		return TRUE;
 
 #endif
+
+	WLog_ERR(TAG, "Failed to update the data");
 	return FALSE;
 }
 
@@ -821,6 +819,7 @@ err:
 	mbedtls_md_free(&ctx);
 	SecureZeroMemory(md_buf, 64);
 	return rv;
-#endif
+#else
 	return 0;
+#endif
 }
